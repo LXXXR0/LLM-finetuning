@@ -3,4 +3,6 @@ theme:
   name: material
 nav:
   - 首页: index.md
+  - SFT 监督微调: sft.md
+  - GRPO: grpo.md
 
