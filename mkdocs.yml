@@ -53,4 +53,6 @@ extra_javascript:
 nav:
   - 首页: index.md
   - 大模型Post-Training指南: 大模型Post-Training指南：从SFT到GRPO.md
+  - 大模型文档抽取指南: 如何利用大语言模型的能力进行文档抽取.md
+  - 大模型RL冷启动指南: DeepSeek-R1精读：强化学习训练时空与GRPO冷启动破局.md
 
