@@ -1,5 +1,5 @@
 
-# 【大模型Posting-Training指南：从SFT到GRPO】
+# 【从SFT到GRPO】
 > 标签：#SFT / #GRPO / #RLHF / #论文阅读 / #工程踩坑
 > 更新时间：YYYY-MM-DD
 
