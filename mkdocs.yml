@@ -54,5 +54,5 @@ nav:
   - 首页: index.md
   - 大模型Post-Training指南: 从SFT到GRPO.md
   - 大模型文档抽取指南: 利用大语言模型的能力进行实体关系抽取.md
-  - 大模型RL冷启动指南: DeepSeek-R1精读: 强化学习训练失控与GRPO冷启动破局.md
+  - 大模型RL冷启动指南: DeepSeek-R1精读：强化学习训练失控与GRPO冷启动破局.md
 
