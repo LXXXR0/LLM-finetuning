@@ -1,1 +1,6 @@
+site_name: LLM-finetuning
+theme:
+  name: material
+nav:
+  - 首页: index.md
 
