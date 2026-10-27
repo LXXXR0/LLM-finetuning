@@ -53,5 +53,4 @@ extra_javascript:
 nav:
   - 首页: index.md
   - 大模型Post-Training指南: 大模型Post-Training指南：从SFT到GRPO.md
-  - SFT监督微调: sft.md
-  - GRPO算法: grpo.md
+
