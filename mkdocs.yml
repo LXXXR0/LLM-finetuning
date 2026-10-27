@@ -1,8 +1,57 @@
+# site_name: LLM-finetuning
+# theme:
+#   name: material
+# nav:
+#   - 首页: index.md
+#   - SFT 监督微调: sft.md
+#   - GRPO: grpo.md
+
 site_name: LLM-finetuning
+site_url: https://lxxxr0.github.io/LLM-finetuning/
+site_description: 大模型后训练笔记 SFT/GRPO/RLHF
+
 theme:
   name: material
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: 切换暗色模式
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: 切换亮色模式
+
+plugins:
+  - search:
+      lang: zh
+
+markdown_extensions:
+  - toc:
+      permalink: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences
+  - pymdownx.arithmatex:
+      generic: true
+
+extra_javascript:
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+
+# ========== 这里就是侧边导航，新增md文件就在这里加一行 ==========
 nav:
   - 首页: index.md
-  - SFT 监督微调: sft.md
-  - GRPO: grpo.md
-
+  - 大模型Post-Training指南: 大模型Post-Training指南：从SFT到GRPO.md
+  - SFT监督微调: sft.md
+  - GRPO算法: grpo.md
