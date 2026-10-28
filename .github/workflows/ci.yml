@@ -1,4 +1,3 @@
-on: []
 
 name: Deploy Docs
 on:
