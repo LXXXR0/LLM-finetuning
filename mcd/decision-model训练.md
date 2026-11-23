@@ -59,6 +59,14 @@ data/opsd的数据格式是：
   
 需要你注意的风险：
   - dfs 在训练数据里一条都没有，但仍在候选里，模型可能会变得不愿选 dfs。训练完我会用 data/opsd/test.jsonl 验证这一点。
+    补强错误样本，但是会造成原始能力的遗忘，所以混合数据就是为了补强+捡回来原始能力。
+<img width="498" height="281" alt="{74717026-F289-4B3C-9202-71AC87F9ED03}" src="https://github.com/user-attachments/assets/3df8c104-4c18-4396-af0f-52da0c5ef31d" />
+
+然后又担心原始能力不足，需要训练多个epoch，但由于错误样本太少，多次训练会过拟合，所以重复原数据3次，达到3epoch的效果。
+<img width="500" height="418" alt="{D3B320D5-404B-4FF3-8E5F-2CF2CFA792A0}" src="https://github.com/user-attachments/assets/29a4783d-aa91-44a2-9c4a-d2eaa9bcc4a5" />
+
+
+
   - 丢掉的那部分数据（多 agent 和 food-safety）如果也很重要，我可以再想办法处理。
 
 
