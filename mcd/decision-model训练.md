@@ -2,6 +2,7 @@
 要做的事情是：用这个错误的决策数据训练一遍qwen-decision-opsd模型，然后结果再和data/opsd的混合起来再训。
 
 data/opsd的数据格式是：
+
 <img width="652" height="355" alt="{0B77AFA8-4A03-4E51-A845-E5C5CB4C56CF}" src="https://github.com/user-attachments/assets/37262999-1862-4db1-b8eb-6092a5e407e3" />
 
 # qwen-decision-opsd的输入输出格式：
