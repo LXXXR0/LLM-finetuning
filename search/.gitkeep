@@ -1,4 +1,1 @@
-git mv search KT_search
-git commit -m "rename search folder to KT_search"
-git push
 
