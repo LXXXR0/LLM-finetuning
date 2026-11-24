@@ -266,6 +266,7 @@ function initResizableColumns() {
   const savedLibrary=localStorage.getItem('paperweave-library-width'); const savedGraph=localStorage.getItem('paperweave-graph-width');
   if(savedLibrary) root.style.setProperty('--library-width',`${savedLibrary}px`); if(savedGraph) root.style.setProperty('--graph-width',`${savedGraph}px`);
   const bind=(element,side)=>element.addEventListener('pointerdown',event=>{
+    if(event.target.closest('.column-toggle')||$('.workspace').classList.contains(side==='left'?'library-collapsed':'graph-collapsed'))return;
     event.preventDefault(); const startX=event.clientX; const startWidth=side==='left'?$('.library-panel').getBoundingClientRect().width:$('.graph-panel').getBoundingClientRect().width;
     document.body.classList.add('resizing');
     const move=moveEvent=>{ const delta=moveEvent.clientX-startX; const available=Math.max(260,window.innerWidth-380); const width=Math.max(side==='left'?190:280,Math.min(side==='left'?500:760,available,side==='left'?startWidth+delta:startWidth-delta)); root.style.setProperty(side==='left'?'--library-width':'--graph-width',`${width}px`); };
@@ -273,6 +274,9 @@ function initResizableColumns() {
     document.addEventListener('pointermove',move); document.addEventListener('pointerup',up);
   });
   bind($('#left-resizer'),'left'); bind($('#right-resizer'),'right');
+  const setCollapsed=(panel,collapsed,remember=true)=>{const workspace=$('.workspace'),library=panel==='library',className=library?'library-collapsed':'graph-collapsed',button=$(library?'#toggle-library-panel':'#toggle-graph-panel');workspace.classList.toggle(className,collapsed);button.textContent=library?(collapsed?'›':'‹'):(collapsed?'‹':'›');button.title=collapsed?`展开${library?'我的文献':'关系图'}`:`收起${library?'我的文献':'关系图'}`;button.setAttribute('aria-expanded',String(!collapsed));if(remember)localStorage.setItem(`paperweave-${panel}-collapsed`,collapsed?'1':'0');setTimeout(()=>{if(!collapsed&&panel==='graph')renderGraph();},0);};
+  const bindToggle=(panel,selector)=>{const button=$(selector);button.addEventListener('pointerdown',event=>event.stopPropagation());button.addEventListener('click',event=>{event.stopPropagation();const className=panel==='library'?'library-collapsed':'graph-collapsed';setCollapsed(panel,!$('.workspace').classList.contains(className));});};
+  bindToggle('library','#toggle-library-panel');bindToggle('graph','#toggle-graph-panel');setCollapsed('library',localStorage.getItem('paperweave-library-collapsed')==='1',false);setCollapsed('graph',localStorage.getItem('paperweave-graph-collapsed')==='1',false);
 }
 
 function renderGraph() {

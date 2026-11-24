@@ -20,7 +20,8 @@ button { cursor: pointer; }
 .upload-button { border-left: 0; border-radius: 0 10px 10px 0; background: white; cursor: pointer; }.upload-button:hover, .ghost:hover { background: #ebe8de; }
 .ghost { border-radius: 9px; white-space: nowrap; }
 .mobile-nav { display:none; }
-.workspace { height: calc(100dvh - 58px); min-height:0; display: grid; grid-template-columns: var(--library-width) 5px minmax(340px, 1fr) 5px var(--graph-width); overflow:hidden; }
+.workspace { --library-track:var(--library-width); --left-handle:5px; --right-handle:5px; --graph-track:var(--graph-width); height: calc(100dvh - 58px); min-height:0; display: grid; grid-template-columns:var(--library-track) var(--left-handle) minmax(340px,1fr) var(--right-handle) var(--graph-track); overflow:hidden; }
+.library-panel { grid-column:1; }#left-resizer { grid-column:2; }.reader-panel { grid-column:3; }#right-resizer { grid-column:4; }.graph-panel { grid-column:5; }
 .library-panel, .reader-panel, .graph-panel { min-width: 0; background: var(--panel); }
 .library-panel { min-height:0; display: flex; flex-direction: column; overflow:hidden; }
 .reader-panel { min-height:0; overflow: hidden; background: #f8f6f0; }
@@ -28,6 +29,8 @@ button { cursor: pointer; }
 .column-resizer { position:relative; cursor:col-resize; background:var(--line); z-index:6; transition:background .15s; }
 .column-resizer:after { content:""; position:absolute; inset:0 -3px; }
 .column-resizer:hover, body.resizing .column-resizer { background:var(--accent); }
+.column-toggle { position:absolute; z-index:8; top:10px; left:50%; width:22px; height:34px; transform:translateX(-50%); display:grid; place-items:center; padding:0; border:1px solid var(--line); border-radius:8px; background:var(--panel); color:var(--muted); font:700 17px/1 Georgia,serif; box-shadow:0 3px 9px rgba(30,30,25,.12); }.column-toggle:hover { color:var(--accent); border-color:var(--accent); background:var(--accent-soft); }
+@media (min-width:901px) { .workspace.library-collapsed { --library-track:0px; --left-handle:28px; }.workspace.graph-collapsed { --right-handle:28px; --graph-track:0px; }.workspace.library-collapsed .library-panel,.workspace.graph-collapsed .graph-panel { display:none; }.workspace.library-collapsed #left-resizer,.workspace.graph-collapsed #right-resizer { cursor:default; background:var(--panel); } }
 body.resizing { cursor:col-resize; user-select:none; }
 .panel-heading, .graph-heading { display: flex; align-items: center; justify-content: space-between; padding: 22px 20px 15px; }
 .eyebrow { color: var(--accent); font-size: 9px; letter-spacing: .18em; font-weight: 800; }
