@@ -1,0 +1,25 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "PaperWeave: 启动服务",
+      "type": "shell",
+      "command": "python",
+      "args": ["app.py", "--no-browser"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "paperweave",
+        "pattern": { "regexp": "^(.*)$", "message": 1 },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "PaperWeave 已启动",
+          "endsPattern": "按 Ctrl\\+C 停止"
+        }
+      },
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "group": { "kind": "build", "isDefault": true },
+      "detail": "只启动服务。安装本地扩展后可点击状态栏的 PaperWeave 按钮直接打开。"
+    }
+  ]
+}

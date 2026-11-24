@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PaperWeave · 文献脉络工作台</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">PW</span><div><strong>PaperWeave</strong><small>把论文织成研究脉络</small></div></div>
+    <form id="import-form" class="import-form">
+      <input id="import-input" placeholder="粘贴 DOI、论文链接、OpenAlex ID 或完整标题…" autocomplete="off">
+      <button type="submit" class="primary">加入并展开引用</button>
+      <label class="upload-button">导入 PDF<input id="pdf-input" type="file" accept="application/pdf" hidden></label>
+    </form>
+    <button id="sync-button" class="ghost" title="同步 Markdown 到 GitHub">同步 GitHub</button>
+  </header>
+
+  <nav class="mobile-nav" aria-label="工作区视图">
+    <button class="mobile-tab active" data-panel="library">我的文献</button>
+    <button class="mobile-tab" data-panel="reader">文献内容</button>
+    <button class="mobile-tab" data-panel="graph">关系图</button>
+  </nav>
+
+  <main class="workspace" data-mobile-panel="library">
+    <aside class="library-panel">
+      <div class="panel-heading">
+        <div><span class="eyebrow">LIBRARY</span><h2>我的文献</h2></div>
+        <span id="paper-count" class="count">0</span>
+      </div>
+      <div class="filters">
+        <input id="search-input" placeholder="搜索标题、作者、主题…">
+        <div class="filter-row">
+          <button class="filter active" data-status="all">全部</button>
+          <button class="filter" data-status="reading">在读</button>
+          <button class="filter" data-status="core">核心</button>
+          <button class="filter" data-status="unread">未读</button>
+        </div>
+      </div>
+      <div id="paper-list" class="paper-list"></div>
+    </aside>
+
+    <div class="column-resizer" id="left-resizer" title="拖动调整文献列表宽度"></div>
+
+    <section class="reader-panel">
+      <div id="empty-state" class="empty-state">
+        <div class="empty-orbit"><span></span><span></span><i>＋</i></div>
+        <h1>从一篇论文开始</h1>
+        <p>在上方粘贴 DOI 或标题，系统会自动拉取元数据，并把参考文献连接成图。</p>
+        <div class="hint-grid">
+          <div><b>1</b><span>导入种子论文</span></div>
+          <div><b>2</b><span>自动展开引用</span></div>
+          <div><b>3</b><span>阅读并记录判断</span></div>
+        </div>
+      </div>
+      <article id="paper-detail" class="paper-detail hidden">
+        <div class="detail-topbar">
+          <div class="paper-meta"><span id="paper-year"></span><span id="paper-venue"></span><span id="paper-doi"></span></div>
+          <div class="detail-actions">
+            <select id="status-select" aria-label="阅读状态">
+              <option value="unread">未读</option>
+              <option value="reading">在读</option>
+              <option value="core">核心</option>
+              <option value="done">已读</option>
+            </select>
+            <button id="expand-button" class="ghost">展开引用</button>
+            <a id="source-link" class="ghost link-button" target="_blank" rel="noreferrer">打开原文 ↗</a>
+          </div>
+        </div>
+        <h1 id="paper-title"></h1>
+        <p id="paper-authors" class="authors"></p>
+        <div id="topic-list" class="topic-list"></div>
+        <div class="tabs">
+          <button class="tab active" data-tab="notes">阅读笔记</button>
+          <button class="tab" data-tab="abstract">摘要</button>
+          <button class="tab" data-tab="relations">关系</button>
+        </div>
+        <section id="tab-notes" class="tab-page">
+          <div class="note-toolbar"><div class="note-guide">建议记录：研究问题 · 方法 · 数据集 · 核心结论 · 局限 · 你的判断</div><div class="note-actions"><button id="note-save" class="primary">保存笔记</button><button id="note-split" class="ghost">PDF + 笔记</button><button id="note-fullscreen" class="ghost">全屏编辑 ⛶</button></div></div>
+          <textarea id="note-editor" placeholder="写下你对这篇论文的理解。停止输入后自动保存，并导出为 Markdown…"></textarea>
+          <span id="save-state" class="save-state">已保存</span>
+        </section>
+        <section id="tab-abstract" class="tab-page hidden">
+          <div class="abstract-toolbar"><span>摘要对照</span><button id="translate-button" class="primary">翻译为中文</button></div>
+          <div class="abstract-compare">
+            <article class="abstract-column"><span class="eyebrow">ENGLISH ABSTRACT</span><p id="paper-abstract" class="abstract"></p></article>
+            <article id="translation-card" class="translation-card"><span class="eyebrow">中文翻译</span><h3 id="paper-title-zh"></h3><p id="paper-abstract-zh"></p><p id="translation-placeholder" class="translation-placeholder">点击“翻译为中文”后，译文会显示在这里。</p></article>
+          </div>
+        </section>
+        <section id="pdf-storage" class="pdf-storage hidden" aria-hidden="true">
+          <div id="pdf-empty" class="pdf-empty">暂时没有可直接打开的 PDF，可点击“打开原文”。</div>
+          <div id="pdf-viewer" class="pdf-viewer hidden">
+            <div class="pdf-toolbar"><button id="pdf-prev" class="ghost">←</button><span><b id="pdf-page">1</b> / <span id="pdf-pages">1</span></span><button id="pdf-next" class="ghost">→</button><span class="pdf-divider"></span><button class="pdf-tool active" data-tool="cursor">浏览</button><button class="pdf-tool" data-tool="highlight">高亮</button><button class="pdf-tool" data-tool="pen">画笔</button><button class="pdf-tool" data-tool="eraser">橡皮</button><input id="annotation-color" type="color" value="#f0b429" title="标注颜色"><button id="annotation-undo" class="ghost" title="撤销当前页最后一个标注">撤销</button><button id="pdf-translate" class="ghost">翻译本页</button><span id="pdf-status" class="pdf-status"></span><span class="pdf-spacer"></span><button id="pdf-zoom-out" class="ghost">−</button><span id="pdf-zoom">100%</span><button id="pdf-zoom-in" class="ghost">＋</button></div>
+            <div class="pdf-body"><div id="pdf-canvas-wrap" class="pdf-canvas-wrap"><div id="pdf-page-stage" class="pdf-page-stage"><canvas id="pdf-canvas"></canvas><canvas id="annotation-canvas"></canvas></div></div><aside id="pdf-translation" class="pdf-translation hidden"><header><strong>第 <span id="pdf-translation-page">1</span> 页中文</strong><button id="pdf-translation-close" class="ghost">关闭</button></header><div id="pdf-translation-text">点击“翻译本页”生成译文。</div></aside></div>
+          </div>
+        </section>
+        <section id="tab-relations" class="tab-page hidden"><div id="relation-list" class="relation-list"></div></section>
+      </article>
+    </section>
+
+    <div class="column-resizer" id="right-resizer" title="拖动调整关系图宽度"></div>
+
+    <aside class="graph-panel">
+      <div class="graph-heading"><div><span class="eyebrow">KNOWLEDGE MAP</span><h2>文献关系图</h2></div><button id="fit-graph" class="icon-button" title="刷新图谱并重置视图">↻</button></div>
+      <div class="legend"><span><i class="seed-dot"></i>已加入</span><span><i class="ref-dot"></i>参考文献</span><span>→ 引用</span></div>
+      <div id="graph" class="graph"><svg id="graph-svg"><g id="viewport"><g id="edges"></g><g id="nodes"></g></g></svg><div id="graph-tip" class="graph-tip hidden"></div></div>
+      <div class="graph-footer"><span>滚轮缩放 · 拖动画布 · 点击节点打开</span><span id="edge-count">0 条关系</span></div>
+    </aside>
+  </main>
+  <section id="split-workspace" class="split-workspace hidden">
+    <header><strong>PDF + 阅读笔记</strong><span id="split-paper-title"></span><button id="split-close" class="ghost">退出分屏 Esc</button></header>
+    <div class="split-body"><div id="split-pdf-host" class="split-pane split-pdf"></div><div class="split-divider"></div><div class="split-pane split-notes"><div class="split-note-heading"><div class="note-guide">阅读时随手记录，内容会自动同步到论文笔记</div><button id="split-note-save" class="primary">保存笔记</button></div><textarea id="split-note-editor" placeholder="写下研究问题、方法、结论和你的想法…"></textarea><span id="split-save-state" class="save-state">已保存</span></div></div>
+  </section>
+  <div id="toast" class="toast hidden"></div>
+  <div id="loading" class="loading hidden"><div class="spinner"></div><strong>正在编织文献关系…</strong><span>首次展开参考文献可能需要几十秒</span></div>
+  <script src="/app.js"></script>
+</body>
+</html>
