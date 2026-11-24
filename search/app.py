@@ -563,8 +563,6 @@ def import_pdf(filename: str, content: bytes) -> dict[str, Any]:
 
 
 def git_sync() -> dict[str, Any]:
-    if not (ROOT / ".git").exists():
-        raise ValueError("当前目录还不是 Git 仓库。安装 Git 并初始化仓库后即可同步。")
     git_executable = shutil.which("git")
     if not git_executable:
         user_git = Path(os.environ.get("LOCALAPPDATA", "")) / "Programs" / "Git" / "cmd" / "git.exe"
@@ -573,12 +571,14 @@ def git_sync() -> dict[str, Any]:
     if not git_executable:
         raise ValueError("尚未找到 Git。请重新打开 PaperWeave 后再试。")
     try:
-        subprocess.run([git_executable, "add", "library", "config.example.json", "README.md"], cwd=ROOT, check=True, capture_output=True, text=True)
-        status = subprocess.run([git_executable, "status", "--porcelain"], cwd=ROOT, check=True, capture_output=True, text=True).stdout.strip()
+        subprocess.run([git_executable, "rev-parse", "--show-toplevel"], cwd=ROOT, check=True, capture_output=True, text=True)
+        sync_paths = ["library", "config.example.json", "README.md"]
+        subprocess.run([git_executable, "add", "--", *sync_paths], cwd=ROOT, check=True, capture_output=True, text=True)
+        status = subprocess.run([git_executable, "status", "--porcelain", "--", *sync_paths], cwd=ROOT, check=True, capture_output=True, text=True).stdout.strip()
         if not status:
             return {"message": "没有需要同步的变化。"}
         stamp = dt.datetime.now().astimezone().strftime("%Y-%m-%d %H:%M")
-        subprocess.run([git_executable, "commit", "-m", f"Update paper notes {stamp}"], cwd=ROOT, check=True, capture_output=True, text=True)
+        subprocess.run([git_executable, "commit", "-m", f"Update paper notes {stamp}", "--", *sync_paths], cwd=ROOT, check=True, capture_output=True, text=True)
         subprocess.run([git_executable, "push"], cwd=ROOT, check=True, capture_output=True, text=True)
         return {"message": "已提交并推送到 GitHub。"}
     except FileNotFoundError as exc:
