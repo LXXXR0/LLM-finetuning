@@ -678,6 +678,15 @@ class Handler(SimpleHTTPRequestHandler):
                 saved = save_page_annotations(int(annotation_match.group(1)), page, items)
                 self.send_json({"annotations": saved})
                 return
+            if path == "/api/translate":
+                payload = self.read_json()
+                source_text = str(payload.get("text") or "").strip()
+                if not source_text:
+                    raise ValueError("请先选择需要翻译的文字。")
+                if len(source_text) > 12000:
+                    source_text = source_text[:12000]
+                self.send_json({"translated_text": translate_to_chinese(source_text)})
+                return
             pdf_translation_match = re.fullmatch(r"/api/papers/(\d+)/pdf-translation", path)
             if pdf_translation_match:
                 payload = self.read_json()
