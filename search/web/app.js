@@ -124,6 +124,8 @@ function scheduleNoteSave() { clearTimeout(state.saveTimer); const paperId=state
 $('#note-editor').addEventListener('input', () => { if(!$('#split-workspace').classList.contains('hidden'))$('#split-note-editor').value=$('#note-editor').value; $('#save-state').textContent='正在输入…'; $('#split-save-state').textContent='正在输入…'; scheduleNoteSave(); });
 async function saveNote(paperId=state.selectedId,note=$('#note-editor').value,announce=false) { if (!paperId) return; if(paperId===state.selectedId){$('#save-state').textContent='保存中…';$('#split-save-state').textContent='保存中…';} try { await api(`/api/papers/${paperId}`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({note})}); if(paperId===state.selectedId){$('#save-state').textContent='已保存并导出 Markdown';$('#split-save-state').textContent='已保存并导出 Markdown';} if(announce)toast('笔记已保存，并已导出 Markdown。'); } catch(err) { if(paperId===state.selectedId){$('#save-state').textContent='保存失败';$('#split-save-state').textContent='保存失败';} toast(err.message,true); } }
 $('#note-save').addEventListener('click',()=>{clearTimeout(state.saveTimer);saveNote(state.selectedId,$('#note-editor').value,true);});
+function setPaperHeaderCollapsed(collapsed,remember=true){$('#paper-detail').classList.toggle('header-collapsed',collapsed);const button=$('#paper-header-toggle');button.textContent=collapsed?'展开信息 ↓':'收起信息 ↑';button.setAttribute('aria-expanded',String(!collapsed));if(remember)localStorage.setItem('paperweave-paper-header-collapsed',collapsed?'1':'0');}
+$('#paper-header-toggle').addEventListener('click',()=>setPaperHeaderCollapsed(!$('#paper-detail').classList.contains('header-collapsed')));
 function activateTab(name) { $$('.tab').forEach(x=>x.classList.toggle('active', x.dataset.tab===name)); $$('.tab-page').forEach(x=>x.classList.add('hidden')); $(`#tab-${name}`).classList.remove('hidden'); }
 $$('.tab').forEach(tab => tab.addEventListener('click', () => activateTab(tab.dataset.tab)));
 $('#translate-button').addEventListener('click', async () => {
@@ -292,6 +294,7 @@ $('#fit-graph').addEventListener('click',async()=>{state.transform={x:0,y:0,k:1}
 window.addEventListener('resize',()=>{renderGraph();if(!$('#split-workspace').classList.contains('hidden'))applySplitRatio();if(pdfState.document&&!$('#split-workspace').classList.contains('hidden'))renderPdfPage();});
 initResizableColumns();
 initReaderResizers();
+setPaperHeaderCollapsed(localStorage.getItem('paperweave-paper-header-collapsed')==='1',false);
 const initialParams=new URLSearchParams(location.search); const initialPaper=Number(initialParams.get('paper'))||null;
 refresh(initialPaper).then(()=>{const tab=initialParams.get('tab')||location.hash.slice(1);if(tab==='pdf'&&state.selectedPaper?.pdf_url)openSplitWorkspace();else if(tab&&$(`#tab-${tab}`))activateTab(tab);}).catch(err=>toast(err.message,true));
 setInterval(pollGraphUpdates, 5000);

@@ -55,7 +55,7 @@
         </div>
       </div>
       <article id="paper-detail" class="paper-detail hidden">
-        <div class="detail-topbar">
+        <div id="paper-header" class="paper-header"><div class="detail-topbar">
           <div class="paper-meta"><span id="paper-year"></span><span id="paper-venue"></span><span id="paper-doi"></span></div>
           <div class="detail-actions">
             <select id="status-select" aria-label="阅读状态">
@@ -70,11 +70,12 @@
         </div>
         <h1 id="paper-title"></h1>
         <p id="paper-authors" class="authors"></p>
-        <div id="topic-list" class="topic-list"></div>
+        <div id="topic-list" class="topic-list"></div></div>
         <div class="tabs">
           <button class="tab active" data-tab="notes">阅读笔记</button>
           <button class="tab" data-tab="abstract">摘要</button>
           <button class="tab" data-tab="relations">关系</button>
+          <button id="paper-header-toggle" class="paper-header-toggle" title="收起或展开论文标题信息">收起信息 ↑</button>
         </div>
         <section id="tab-notes" class="tab-page">
           <div class="note-toolbar"><div class="note-guide">建议记录：研究问题 · 方法 · 数据集 · 核心结论 · 局限 · 你的判断</div><div class="note-actions"><button id="note-save" class="primary">保存笔记</button><button id="note-split" class="ghost">PDF + 笔记</button><button id="note-fullscreen" class="ghost">全屏编辑 ⛶</button></div></div>
