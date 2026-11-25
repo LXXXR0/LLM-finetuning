@@ -1,5 +1,5 @@
 const state = { papers: [], edges: [], selectedId: null, selectedPaper: null, status: 'all', query: '', saveTimer: null, graphSignature: '', polling: false, transform: { x: 0, y: 0, k: 1 } };
-const pdfState = { module:null, document:null, url:'', paperId:null, page:1, zoom:1, renderTask:null, annotations:[], tool:'cursor', drawing:null, saveTimer:null, translationRequest:0, translationMode:'page', pageTexts:new Map(), selectedText:'' };
+const pdfState = { module:null, document:null, url:'', paperId:null, page:1, zoom:1, renderTask:null, annotations:[], tool:'cursor', drawing:null, saveTimer:null, wheelTimer:null, wheelAnchor:null, translationRequest:0, translationMode:'page', pageTexts:new Map(), selectedText:'' };
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
 
@@ -172,7 +172,7 @@ async function renderPdfTextLayer(page,viewport,textContent){
   try{const task=pdfState.module.renderTextLayer({textContentSource:textContent,container:layer,viewport,textDivs:[]});if(task?.promise)await task.promise;}
   catch(_){layer.innerHTML='';}
 }
-async function renderPdfPage() {
+async function renderPdfPage(resetScroll=true) {
   if(!pdfState.document) return;
   try {
     $('#pdf-status').textContent='渲染页面…';
@@ -184,13 +184,20 @@ async function renderPdfPage() {
     pdfState.renderTask=page.render({canvasContext:context,viewport,transform:ratio===1?null:[ratio,0,0,ratio,0,0]}); await pdfState.renderTask.promise; pdfState.renderTask=null;
     const textContent=await page.getTextContent();pdfState.pageTexts.set(pdfState.page,textContentToString(textContent));await renderPdfTextLayer(page,viewport,textContent);
     const annotationCanvas=$('#annotation-canvas'); annotationCanvas.width=canvas.width; annotationCanvas.height=canvas.height; annotationCanvas.style.width=canvas.style.width; annotationCanvas.style.height=canvas.style.height; drawAnnotations();
-    $('#pdf-page').textContent=pdfState.page; $('#pdf-zoom').textContent=`${Math.round(pdfState.zoom*100)}%`; $('#pdf-prev').disabled=pdfState.page<=1; $('#pdf-next').disabled=pdfState.page>=pdfState.document.numPages; $('#pdf-status').textContent=`第 ${pdfState.page} 页`; wrap.scrollTop=0; if(!$('#pdf-translation').classList.contains('hidden')&&pdfState.translationMode==='page')loadCachedPdfTranslation(pdfState.page);
+    $('#pdf-page').textContent=pdfState.page; $('#pdf-zoom').textContent=`${Math.round(pdfState.zoom*100)}%`; $('#pdf-prev').disabled=pdfState.page<=1; $('#pdf-next').disabled=pdfState.page>=pdfState.document.numPages; $('#pdf-status').textContent=`第 ${pdfState.page} 页`; if(resetScroll){wrap.scrollTop=0;wrap.scrollLeft=0;} if(!$('#pdf-translation').classList.contains('hidden')&&pdfState.translationMode==='page')loadCachedPdfTranslation(pdfState.page);
   } catch(err) { if(err?.name!=='RenderingCancelledException'){ $('#pdf-status').textContent='渲染失败'; toast(`PDF 页面渲染失败：${err.message}`,true); } }
 }
 $('#pdf-prev').addEventListener('click',()=>{if(pdfState.page>1){pdfState.page-=1;renderPdfPage();}});
 $('#pdf-next').addEventListener('click',()=>{if(pdfState.document&&pdfState.page<pdfState.document.numPages){pdfState.page+=1;renderPdfPage();}});
-$('#pdf-zoom-out').addEventListener('click',()=>{pdfState.zoom=Math.max(.5,pdfState.zoom-.15);renderPdfPage();});
-$('#pdf-zoom-in').addEventListener('click',()=>{pdfState.zoom=Math.min(2.5,pdfState.zoom+.15);renderPdfPage();});
+async function zoomPdf(nextZoom,clientX=null,clientY=null){
+  if(!pdfState.document)return;const wrap=$('#pdf-canvas-wrap'),oldZoom=pdfState.zoom,next=Math.max(.5,Math.min(4,nextZoom));if(Math.abs(next-oldZoom)<.001)return;const rect=wrap.getBoundingClientRect(),anchorX=clientX===null?wrap.clientWidth/2:clientX-rect.left,anchorY=clientY===null?wrap.clientHeight/2:clientY-rect.top,documentX=wrap.scrollLeft+anchorX,documentY=wrap.scrollTop+anchorY,factor=next/oldZoom;pdfState.zoom=next;await renderPdfPage(false);wrap.scrollLeft=Math.max(0,documentX*factor-anchorX);wrap.scrollTop=Math.max(0,documentY*factor-anchorY);
+}
+$('#pdf-zoom-out').addEventListener('click',()=>zoomPdf(pdfState.zoom-.15));
+$('#pdf-zoom-in').addEventListener('click',()=>zoomPdf(pdfState.zoom+.15));
+const pdfCanvasWrap=$('#pdf-canvas-wrap');
+pdfCanvasWrap.addEventListener('pointerdown',()=>pdfCanvasWrap.focus({preventScroll:true}));
+pdfCanvasWrap.addEventListener('focus',()=>{$('#pdf-status').textContent='Ctrl + 滚轮可局部缩放';});
+pdfCanvasWrap.addEventListener('wheel',event=>{if(!event.ctrlKey)return;event.preventDefault();event.stopPropagation();if(!pdfState.document)return;if(!pdfState.wheelAnchor){const rect=pdfCanvasWrap.getBoundingClientRect();pdfState.wheelAnchor={baseZoom:pdfState.zoom,anchorX:event.clientX-rect.left,anchorY:event.clientY-rect.top,documentX:pdfCanvasWrap.scrollLeft+event.clientX-rect.left,documentY:pdfCanvasWrap.scrollTop+event.clientY-rect.top};}pdfState.zoom=Math.max(.5,Math.min(4,pdfState.zoom*(event.deltaY<0?1.12:1/1.12)));$('#pdf-zoom').textContent=`${Math.round(pdfState.zoom*100)}%`;clearTimeout(pdfState.wheelTimer);pdfState.wheelTimer=setTimeout(async()=>{const anchor=pdfState.wheelAnchor;pdfState.wheelAnchor=null;const factor=pdfState.zoom/anchor.baseZoom;await renderPdfPage(false);pdfCanvasWrap.scrollLeft=Math.max(0,anchor.documentX*factor-anchor.anchorX);pdfCanvasWrap.scrollTop=Math.max(0,anchor.documentY*factor-anchor.anchorY);},90);},{passive:false});
 
 async function extractPdfPageText(pageNumber) {
   if(pdfState.pageTexts.has(pageNumber))return pdfState.pageTexts.get(pageNumber);
