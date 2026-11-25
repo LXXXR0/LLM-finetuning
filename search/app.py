@@ -31,6 +31,7 @@ PDF_DIR = ROOT / "pdfs"
 LIBRARY_DIR = ROOT / "library" / "papers"
 DB_PATH = DATA_DIR / "papers.db"
 CONFIG_PATH = ROOT / "config.json"
+AUTH_CONFIG_PATH = DATA_DIR / ".auth.json"
 MAX_AUTO_REFERENCES = 30
 
 for directory in (DATA_DIR, PDF_DIR, LIBRARY_DIR):
@@ -594,9 +595,16 @@ class Handler(SimpleHTTPRequestHandler):
 
     def require_auth(self) -> bool:
         password = os.environ.get("PAPERWEAVE_PASSWORD", "")
+        username = os.environ.get("PAPERWEAVE_USER", "iris")
+        if not password and AUTH_CONFIG_PATH.is_file():
+            try:
+                auth_config = json.loads(AUTH_CONFIG_PATH.read_text(encoding="utf-8"))
+                username = str(auth_config.get("username") or username)
+                password = str(auth_config.get("password") or "")
+            except (OSError, ValueError, json.JSONDecodeError):
+                password = ""
         if not password:
             return True
-        username = os.environ.get("PAPERWEAVE_USER", "iris")
         header = self.headers.get("Authorization", "")
         supplied = ""
         if header.startswith("Basic "):
