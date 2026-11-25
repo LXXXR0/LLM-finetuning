@@ -758,11 +758,12 @@ class Handler(SimpleHTTPRequestHandler):
             self.send_json({"error": f"处理失败：{exc}"}, 500)
 
 
-def run(port: int, no_browser: bool) -> None:
+def run(port: int, no_browser: bool, host: str = "127.0.0.1") -> None:
     init_db()
     os.chdir(WEB_DIR)
-    server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
-    address = f"http://127.0.0.1:{port}"
+    server = ThreadingHTTPServer((host, port), Handler)
+    display_host = "127.0.0.1" if host == "0.0.0.0" else host
+    address = f"http://{display_host}:{port}"
     print(f"PaperWeave 已启动：{address}")
     print("按 Ctrl+C 停止。论文和笔记保存在当前文件夹中。")
     if not no_browser:
@@ -778,6 +779,7 @@ def run(port: int, no_browser: bool) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="PaperWeave local literature graph")
     parser.add_argument("--port", type=int, default=8765)
+    parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--no-browser", action="store_true")
     args = parser.parse_args()
-    run(args.port, args.no_browser)
+    run(args.port, args.no_browser, args.host)

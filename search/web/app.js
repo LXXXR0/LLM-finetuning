@@ -122,6 +122,48 @@ $$('.filter').forEach(el => el.addEventListener('click', () => { $$('.filter').f
 $('#status-select').addEventListener('change', async e => { try { await api(`/api/papers/${state.selectedId}`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:e.target.value})}); await refresh(state.selectedId); toast('阅读状态已更新'); } catch(err){ toast(err.message,true); } });
 function scheduleNoteSave() { clearTimeout(state.saveTimer); const paperId=state.selectedId,note=$('#note-editor').value; state.saveTimer=setTimeout(()=>saveNote(paperId,note),700); }
 $('#note-editor').addEventListener('input', () => { if(!$('#split-workspace').classList.contains('hidden'))$('#split-note-editor').value=$('#note-editor').value; $('#save-state').textContent='正在输入…'; $('#split-save-state').textContent='正在输入…'; scheduleNoteSave(); });
+function toggleMarkdownWrap(editor, marker) {
+  let start=editor.selectionStart,end=editor.selectionEnd,value=editor.value,selected=value.slice(start,end);
+  if(selected.startsWith(marker)&&selected.endsWith(marker)&&selected.length>=marker.length*2){
+    selected=selected.slice(marker.length,-marker.length); editor.setRangeText(selected,start,end,'select'); editor.setSelectionRange(start,start+selected.length);
+  }else if(start>=marker.length&&value.slice(start-marker.length,start)===marker&&value.slice(end,end+marker.length)===marker){
+    editor.setRangeText(selected,start-marker.length,end+marker.length,'select'); editor.setSelectionRange(start-marker.length,end-marker.length);
+  }else{
+    editor.setRangeText(`${marker}${selected}${marker}`,start,end,'select');
+    selected ? editor.setSelectionRange(start+marker.length,end+marker.length) : editor.setSelectionRange(start+marker.length,start+marker.length);
+  }
+  editor.focus(); editor.dispatchEvent(new Event('input',{bubbles:true}));
+}
+function insertMarkdownLink(editor){
+  const start=editor.selectionStart,end=editor.selectionEnd,selected=editor.value.slice(start,end),label=selected||'链接文字',url='https://';
+  editor.setRangeText(`[${label}](${url})`,start,end,'select');
+  if(selected){const urlStart=start+label.length+3;editor.setSelectionRange(urlStart,urlStart+url.length);}
+  else editor.setSelectionRange(start+1,start+1+label.length);
+  editor.focus();editor.dispatchEvent(new Event('input',{bubbles:true}));
+}
+function toggleMarkdownList(editor,ordered=false){
+  const value=editor.value,selectionStart=editor.selectionStart,selectionEnd=editor.selectionEnd;
+  const start=value.lastIndexOf('\n',Math.max(0,selectionStart-1))+1,nextBreak=value.indexOf('\n',selectionEnd),end=nextBreak<0?value.length:nextBreak;
+  const lines=value.slice(start,end).split('\n'),pattern=ordered?/^\s*\d+\.\s+/:/^\s*[-*+]\s+/,remove=lines.every(line=>!line.trim()||pattern.test(line));
+  const changed=lines.map((line,index)=>!line.trim()?line:(remove?line.replace(pattern,''):`${ordered?`${index+1}.`:'-'} ${line}`)).join('\n');
+  editor.setRangeText(changed,start,end,'select');editor.setSelectionRange(start,start+changed.length);editor.focus();editor.dispatchEvent(new Event('input',{bubbles:true}));
+}
+function handleNoteShortcut(event){
+  if(!(event.ctrlKey||event.metaKey)||event.altKey)return;
+  const key=event.key.toLowerCase(),editor=event.currentTarget;
+  if(key==='b'||key==='i'||key==='h'||key==='`'){event.preventDefault();toggleMarkdownWrap(editor,key==='b'?'**':key==='i'?'*':key==='h'?'==':'`');}
+  else if(key==='k'){event.preventDefault();insertMarkdownLink(editor);}
+  else if(event.shiftKey&&(event.code==='Digit7'||event.code==='Digit8')){event.preventDefault();toggleMarkdownList(editor,event.code==='Digit7');}
+}
+$('#note-editor').addEventListener('keydown',handleNoteShortcut);
+function installShortcutHelp(){
+  const html=`<div class="shortcut-help"><button type="button" class="shortcut-help-button" title="查看笔记快捷键" aria-label="查看笔记快捷键" aria-expanded="false">⌨</button><div class="shortcut-popover hidden"><strong>笔记快捷键</strong><div><kbd>Ctrl+B</kbd><span>加粗</span><kbd>Ctrl+I</kbd><span>斜体</span><kbd>Ctrl+H</kbd><span>高亮</span><kbd>Ctrl+K</kbd><span>插入链接</span><kbd>Ctrl+Shift+7</kbd><span>编号列表</span><kbd>Ctrl+Shift+8</kbd><span>项目列表</span><kbd>Ctrl+\`</kbd><span>行内代码</span><kbd>Ctrl+S</kbd><span>保存笔记</span><kbd>Ctrl+Z / Y</kbd><span>撤销 / 恢复</span><kbd>Esc</kbd><span>退出全屏或分屏</span></div></div></div>`;
+  document.querySelector('.note-actions')?.insertAdjacentHTML('beforeend',html);document.querySelector('.split-note-heading')?.insertAdjacentHTML('beforeend',html);
+  $$('.shortcut-help-button').forEach(button=>button.addEventListener('click',event=>{event.stopPropagation();const popover=button.nextElementSibling,open=popover.classList.contains('hidden');$$('.shortcut-popover').forEach(item=>item.classList.add('hidden'));$$('.shortcut-help-button').forEach(item=>item.setAttribute('aria-expanded','false'));popover.classList.toggle('hidden',!open);button.setAttribute('aria-expanded',String(open));}));
+  const closeHelp=()=>{$$('.shortcut-popover').forEach(item=>item.classList.add('hidden'));$$('.shortcut-help-button').forEach(item=>item.setAttribute('aria-expanded','false'));};
+  document.addEventListener('click',closeHelp);document.addEventListener('keydown',event=>{if(event.key==='Escape'&&$$('.shortcut-popover:not(.hidden)').length){event.preventDefault();event.stopImmediatePropagation();closeHelp();}},true);
+}
+installShortcutHelp();
 async function saveNote(paperId=state.selectedId,note=$('#note-editor').value,announce=false) { if (!paperId) return; if(paperId===state.selectedId){$('#save-state').textContent='保存中…';$('#split-save-state').textContent='保存中…';} try { await api(`/api/papers/${paperId}`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({note})}); if(paperId===state.selectedId){$('#save-state').textContent='已保存并导出 Markdown';$('#split-save-state').textContent='已保存并导出 Markdown';} if(announce)toast('笔记已保存，并已导出 Markdown。'); } catch(err) { if(paperId===state.selectedId){$('#save-state').textContent='保存失败';$('#split-save-state').textContent='保存失败';} toast(err.message,true); } }
 $('#note-save').addEventListener('click',()=>{clearTimeout(state.saveTimer);saveNote(state.selectedId,$('#note-editor').value,true);});
 function setPaperHeaderCollapsed(collapsed,remember=true){$('#paper-detail').classList.toggle('header-collapsed',collapsed);const button=$('#paper-header-toggle');button.textContent=collapsed?'展开信息 ↓':'收起信息 ↑';button.setAttribute('aria-expanded',String(!collapsed));if(remember)localStorage.setItem('paperweave-paper-header-collapsed',collapsed?'1':'0');}
@@ -145,7 +187,17 @@ async function openSplitWorkspace() {
 function closeSplitWorkspace() { if($('#split-workspace').classList.contains('hidden'))return; $('#note-editor').value=$('#split-note-editor').value; $('#pdf-storage').appendChild($('#pdf-viewer')); $('#split-workspace').classList.add('hidden'); clearTimeout(state.saveTimer); const paperId=state.selectedId,note=$('#note-editor').value;state.saveTimer=setTimeout(()=>saveNote(paperId,note),100); }
 $('#note-split').addEventListener('click',openSplitWorkspace); $('#split-close').addEventListener('click',closeSplitWorkspace);
 $('#split-note-editor').addEventListener('input',()=>{ $('#note-editor').value=$('#split-note-editor').value; $('#save-state').textContent='正在输入…';$('#split-save-state').textContent='正在输入…';scheduleNoteSave(); });
+$('#split-note-editor').addEventListener('keydown',handleNoteShortcut);
 $('#split-note-save').addEventListener('click',()=>{clearTimeout(state.saveTimer);$('#note-editor').value=$('#split-note-editor').value;saveNote(state.selectedId,$('#split-note-editor').value,true);});
+document.addEventListener('keydown',event=>{
+  if((event.ctrlKey||event.metaKey)&&!event.altKey&&event.key.toLowerCase()==='s'){
+    event.preventDefault();event.stopImmediatePropagation();clearTimeout(state.saveTimer);
+    const splitOpen=!$('#split-workspace').classList.contains('hidden');
+    const note=splitOpen?$('#split-note-editor').value:$('#note-editor').value;
+    if(splitOpen)$('#note-editor').value=note;
+    saveNote(state.selectedId,note,true);
+  }
+},true);
 document.addEventListener('keydown',event=>{if(event.key==='Escape'){if(!$('#split-workspace').classList.contains('hidden'))closeSplitWorkspace();else if($('#tab-notes').classList.contains('note-focus'))toggleNoteFocus(false);}});
 $('#sync-button').addEventListener('click', async () => { try { const r=await api('/api/git-sync',{method:'POST'}); toast(r.message); } catch(err){ toast(err.message,true); } });
 $$('.mobile-tab').forEach(tab=>tab.addEventListener('click',()=>switchMobilePanel(tab.dataset.panel)));
