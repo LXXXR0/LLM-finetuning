@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import concurrent.futures
 import datetime as dt
 import hashlib
+import hmac
 import json
 import mimetypes
 import os
@@ -590,6 +592,28 @@ def git_sync() -> dict[str, Any]:
 class Handler(SimpleHTTPRequestHandler):
     server_version = "PaperWeave/0.1"
 
+    def require_auth(self) -> bool:
+        password = os.environ.get("PAPERWEAVE_PASSWORD", "")
+        if not password:
+            return True
+        username = os.environ.get("PAPERWEAVE_USER", "iris")
+        header = self.headers.get("Authorization", "")
+        supplied = ""
+        if header.startswith("Basic "):
+            try:
+                supplied = base64.b64decode(header[6:], validate=True).decode("utf-8")
+            except (ValueError, UnicodeDecodeError):
+                supplied = ""
+        if hmac.compare_digest(supplied, f"{username}:{password}"):
+            return True
+        self.send_response(401)
+        self.send_header("WWW-Authenticate", 'Basic realm="PaperWeave", charset="UTF-8"')
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Robots-Tag", "noindex, nofollow")
+        self.send_header("Content-Length", "0")
+        self.end_headers()
+        return False
+
     def log_message(self, format: str, *args: Any) -> None:
         sys.stdout.write("[%s] %s\n" % (self.log_date_time_string(), format % args))
 
@@ -606,7 +630,13 @@ class Handler(SimpleHTTPRequestHandler):
         length = int(self.headers.get("Content-Length", "0"))
         return json.loads(self.rfile.read(length).decode("utf-8")) if length else {}
 
+    def do_HEAD(self) -> None:
+        if self.require_auth():
+            super().do_HEAD()
+
     def do_GET(self) -> None:
+        if not self.require_auth():
+            return
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path
         if path == "/api/graph":
@@ -651,6 +681,8 @@ class Handler(SimpleHTTPRequestHandler):
         self.wfile.write(data)
 
     def do_POST(self) -> None:
+        if not self.require_auth():
+            return
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path
         try:
