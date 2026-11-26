@@ -20,6 +20,12 @@ Routing can be decomposed into three core dimensions:
 2.  The signal: What information does the router use to make its decision? This can range from simple heuristics (prompt length, user tier) to semantic classifiers to learned predictors of model quality.
 3.  The objective: What is the router optimizing for? Cost? Quality? Latency? A weighted combination?
 
+
+路由系统有三大核心维度：
+1. **模型池（models）**：可供调度的模型，可以是同厂商不同大小（Claude‑Haiku / Opus），也可以混合开源 + 闭源模型。
+2. **决策信号（signal）**：路由靠什么做判断。简单规则（prompt 长度、用户等级）、语义分类器、训练得到的预测模型。
+3. **优化目标（objective）**：要优化什么：成本、输出质量、延迟，或者三者加权平衡。
+
 Different routing solutions entail different choices across all three dimensions, and the right choice depends heavily on the workload.
 
 ## **Gateways vs. routers: breaking down the difference**
@@ -33,6 +39,8 @@ A gateway is a unified interface. It gives your application one API to call inst
 A router decides when to use which model. It takes an incoming request and dynamically selects the model that should handle it. The value of a router is optimization: you stop paying for the strongest model on the steps that don't need it, and you get the aggregate benefits of a heterogeneous model pool without having to manually orchestrate which model serves which query.
 
 Gateways and routers are not competing categories, and production AI stacks need both.
+
+**网关Gateway负责“调用”；路由器Router负责“选哪个”**
 
 ## **Why model routing is essential for agents**
 
@@ -58,6 +66,14 @@ Another important benefit of intelligent routing is that it can outperform indiv
 
 Smaller models can be much faster, and more powerful models can have different reasoning effort settings which impact response times. Routing latency-sensitive queries to the fastest model that can handle them produces a more responsive application. This typically matters most for chat and voice use cases and requires a routing solution which does not add more latency than it saves.
 
+### 4、智能路由带来三大收益
+1. **成本 Cost（首要收益）**
+节约幅度 **20%‑95%**。大部分业务流量是大量简单长尾请求，把它们路由到廉价模型；昂贵模型只留给真正难的 query。Agent 场景收益会被放大，因为一次用户请求会触发上百次模型调用。
+2. **质量 Quality**
+路由甚至**比单一最强模型效果更好（提升 5‑20% 准确率）**。不同模型各有所长，把 query 交给擅长该任务的模型，整体效果优于只使用某一个模型。
+3. **延迟 Latency**
+简单请求交给小模型速度更快；对延迟敏感对话场景收益明显；前提：路由器本身带来的额外延迟不能抵消提速收益。
+
 ## **Cache-aware routing**
 
 One of the most important aspects of routing is the interaction between routing decisions and prompt caching.
@@ -67,6 +83,9 @@ When an agent sends a request with a large shared prefix (prior messages, system
 Cache-aware routing treats the cache as a first-class input to the routing decision. A good router should track when the cache is actually warm and when it has broken on TTL expiry (commonly 5 minutes), context compaction, media attachments, or any edit to the prefix. It also leverages sub-agent routing to benefit from cheaper models on narrower tasks. And it weighs cache economics against routing economics, which depends on both conversation length and pool composition: short conversations don't accumulate enough cache for preservation to matter, pools made up of a single strong model and multiple cheap models let you keep the cache warm on the strong model and only escalate when needed, and cheap-only pools can allow you to maximize quality at every turn because the underlying token cost is low for every option.
 
 A router that looks great on single-turn evaluations can lose all of its paper savings on a real coding session because it hasn't accounted for the cache. This is one of the clearest places where routing for agentic workloads diverges from routing for chat, and it's an essential feature for any routing solutions that you want to leverage in agentic settings.
+
+
+
 
 ## **Where routing fits in the agentic stack**
 
