@@ -16,13 +16,6 @@ function toast(message, error = false) {
 function loading(show) { $('#loading').classList.toggle('hidden', !show); }
 function escapeHtml(value = '') { const el = document.createElement('div'); el.textContent = value; return el.innerHTML; }
 function statusName(value) { return ({ unread: '未读', reading: '在读', core: '核心', done: '已读' })[value] || value; }
-function isCompactLayout() { return window.matchMedia('(max-width: 900px)').matches; }
-function switchMobilePanel(panel) {
-  $('.workspace').dataset.mobilePanel=panel;
-  $$('.mobile-tab').forEach(tab=>tab.classList.toggle('active',tab.dataset.panel===panel));
-  if(panel==='graph') setTimeout(renderGraph,0);
-}
-
 async function refresh(selectId = state.selectedId) {
   const data = await api('/api/graph'); state.papers = data.papers; state.edges = data.edges;
   state.graphSignature = graphSignature(data);
@@ -80,7 +73,6 @@ async function selectPaper(id, rerender = true) {
   $('#relation-list').innerHTML = (p.relations || []).length ? p.relations.map(r => `<div class="relation-item" data-id="${r.other_id}"><span class="relation-type">${r.source_id === p.id && r.type === 'cites' ? '引用' : escapeHtml(r.type)}</span><strong>${escapeHtml(r.other_title)}</strong><button class="relation-note" data-note-id="${r.other_id}">写笔记</button></div>`).join('') : '<div class="pdf-empty">暂无关系</div>';
   $$('.relation-item').forEach(el => el.addEventListener('click', () => selectPaper(Number(el.dataset.id))));
   $$('.relation-note').forEach(el => el.addEventListener('click', async event => { event.stopPropagation(); await selectPaper(Number(el.dataset.noteId)); activateTab('notes'); $('#note-editor').focus(); }));
-  if(isCompactLayout()) switchMobilePanel('reader');
 }
 
 $('#import-form').addEventListener('submit', async e => {
@@ -200,7 +192,6 @@ document.addEventListener('keydown',event=>{
 },true);
 document.addEventListener('keydown',event=>{if(event.key==='Escape'){if(!$('#split-workspace').classList.contains('hidden'))closeSplitWorkspace();else if($('#tab-notes').classList.contains('note-focus'))toggleNoteFocus(false);}});
 $('#sync-button').addEventListener('click', async () => { try { const r=await api('/api/git-sync',{method:'POST'}); toast(r.message); } catch(err){ toast(err.message,true); } });
-$$('.mobile-tab').forEach(tab=>tab.addEventListener('click',()=>switchMobilePanel(tab.dataset.panel)));
 
 async function loadPdf(url, paperId=state.selectedId) {
   if(pdfState.url===url && pdfState.document) return;
