@@ -1,3 +1,7 @@
+https://www.notdiamond.ai/blog/a-comprehensive-guide-to-model-routing
+
+# A Comprehensive Guide to Model Routing 
+
 **Model routing is the practice of intelligently choosing the best model at the lowest cost for each incoming AI request, rather than using a single model for every request.**
 
 A router is distinct from an AI gateway, which provides access to various AI models. With agent inference spend exploding and single coding-agent sessions burning through what used to be an entire month's budget, intelligent model routing is fast becoming one of the most important layers of modern AI infrastructure.
