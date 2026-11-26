@@ -35,7 +35,8 @@ async function pollGraphUpdates() {
       state.papers = data.papers; state.edges = data.edges; state.graphSignature = signature;
       renderList(); renderGraph();
       if (state.selectedId && !['note-editor','split-note-editor'].includes(document.activeElement?.id)) await selectPaper(state.selectedId, false);
-      toast(`图谱已更新：${data.papers.length} 篇论文，${data.edges.length} 条关系。`);
+      // Keep background graph refreshes silent. Note saves update the paper's
+      // timestamp too, and should not interrupt writing with a graph toast.
     }
   } catch (_) {
     // The next poll will retry when the local service is available again.
