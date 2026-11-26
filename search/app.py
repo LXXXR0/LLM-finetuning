@@ -26,9 +26,10 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parent
 WEB_DIR = ROOT / "web"
-DATA_DIR = ROOT / "data"
-PDF_DIR = ROOT / "pdfs"
-LIBRARY_DIR = ROOT / "library" / "papers"
+STORAGE_DIR = Path(os.environ.get("PAPERWEAVE_STORAGE_DIR", ROOT)).resolve()
+DATA_DIR = STORAGE_DIR / "data"
+PDF_DIR = STORAGE_DIR / "pdfs"
+LIBRARY_DIR = STORAGE_DIR / "library" / "papers"
 DB_PATH = DATA_DIR / "papers.db"
 CONFIG_PATH = ROOT / "config.json"
 AUTH_CONFIG_PATH = DATA_DIR / ".auth.json"
@@ -36,6 +37,22 @@ MAX_AUTO_REFERENCES = 30
 
 for directory in (DATA_DIR, PDF_DIR, LIBRARY_DIR):
     directory.mkdir(parents=True, exist_ok=True)
+
+# A newly attached cloud volume starts empty. Seed it once with the database,
+# PDFs and exported notes shipped in the deployment, then keep all later edits
+# on the persistent volume.
+if STORAGE_DIR != ROOT:
+    seed_pairs = (
+        (ROOT / "data" / "papers.db", DB_PATH),
+        (ROOT / "pdfs", PDF_DIR),
+        (ROOT / "library" / "papers", LIBRARY_DIR),
+    )
+    for source, target in seed_pairs:
+        if source.is_file() and not target.exists():
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, target)
+        elif source.is_dir() and not any(target.iterdir()):
+            shutil.copytree(source, target, dirs_exist_ok=True)
 
 
 def db() -> sqlite3.Connection:
@@ -639,10 +656,18 @@ class Handler(SimpleHTTPRequestHandler):
         return json.loads(self.rfile.read(length).decode("utf-8")) if length else {}
 
     def do_HEAD(self) -> None:
+        if urllib.parse.urlparse(self.path).path == "/health":
+            self.send_response(200)
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return
         if self.require_auth():
             super().do_HEAD()
 
     def do_GET(self) -> None:
+        if urllib.parse.urlparse(self.path).path == "/health":
+            self.send_json({"status": "ok"})
+            return
         if not self.require_auth():
             return
         parsed = urllib.parse.urlparse(self.path)
@@ -818,7 +843,7 @@ def run(port: int, no_browser: bool, host: str = "127.0.0.1") -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="PaperWeave local literature graph")
-    parser.add_argument("--port", type=int, default=8765)
+    parser.add_argument("--port", type=int, default=int(os.environ.get("PORT", "8765")))
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--no-browser", action="store_true")
     args = parser.parse_args()
